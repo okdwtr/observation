@@ -1,15 +1,50 @@
-version: "3.8"
+version: '3'
 services:
-  grafana:
-    image: grafana/grafana-enterprise
-    container_name: grafana
-    restart: unless-stopped
-    environment:
-     - GF_SERVER_ROOT_URL=http://my.grafana.server/
-     - GF_INSTALL_PLUGINS=grafana-clock-panel
-    ports:
-     - '3000:3000'
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
     volumes:
-     - 'grafana_storage:/var/lib/grafana'
+      - ./prometheus:/etc/prometheus
+    command: "--config.file=/etc/prometheus/prometheus.yml"
+    ports:
+      - 9090:9090
+    restart: unless-stopped
+  victoriametrics:
+    container_name: victoriametrics
+    image: victoriametrics/victoria-metrics
+    volumes:
+      - vmdata:/storage
+    command:
+      - "--storageDataPath=/storage"
+      - "--retentionPeriod=100y"
+      - "--httpListenAddr=:8428"
+    ports:
+      - 8428:8428
+    restart: unless-stopped
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    ports:
+      - 3000:3000
+    restart: unless-stopped
+  alertmanager:
+    image: prom/alertmanager
+    container_name: alertmanager
+    volumes:
+      - ./alertmanager:/etc/alertmanager
+    command: "--config.file=/etc/alertmanager/config.yml"
+    ports:
+      - 9093:9093
+    restart: unless-stopped
+  exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    ports:
+      - 9100:9100
+    restart: unless-stopped
+
 volumes:
-  grafana_storage: {}
+    vmdata:
+    grafana-storage:
